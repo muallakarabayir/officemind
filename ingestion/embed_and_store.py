@@ -13,25 +13,34 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 # --- Ayarlar ---
 DOCS_PATH = "data/sample_docs/*.md"
 COLLECTION_NAME = "techcorp_docs"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # küçük, hızlı, lokal çalışan model
+EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
 def chunk_markdown(text: str, source: str) -> list[dict]:
     """
     Markdown dosyasını ## başlıklarına göre parçalara böler.
-    Her chunk bir sözlük olarak döner: {"text": ..., "source": ..., "heading": ...}
+    Her chunk için hem 'orijinal metin' (gösterim için) hem de
+    'embed edilecek metin' (bağlam eklenmiş) ayrı tutulur.
     """
-    # ## ile başlayan başlıklardan böl
+    # Dokümanın genel başlığını (# ile başlayan) al
+    title_match = re.match(r"^#\s+(.+)", text)
+    doc_title = title_match.group(1) if title_match else source
+
     sections = re.split(r"\n(?=## )", text)
     chunks = []
     for section in sections:
         section = section.strip()
         if not section:
             continue
-        # Başlığı ayıkla (varsa)
         heading_match = re.match(r"^##\s+(.+)", section)
         heading = heading_match.group(1) if heading_match else "Giriş"
+
+        # Embed edilecek metne bağlam ekle (contextual chunking)
+        context_prefix = f"Doküman: {doc_title}. Bölüm: {heading}.\n"
+        embed_text = context_prefix + section
+
         chunks.append({
-            "text": section,
+            "text": section,          # gösterim için orijinal metin
+            "embed_text": embed_text, # embedding için bağlamlı metin
             "source": source,
             "heading": heading
         })
@@ -62,9 +71,8 @@ def main():
         print(f"  {filename}: {len(doc_chunks)} chunk bulundu")
 
     print(f"\nToplam {len(all_chunks)} chunk embed ediliyor...")
-    texts = [c["text"] for c in all_chunks]
+    texts = [c["embed_text"] for c in all_chunks]   # değişiklik burada: embed_text kullan
     embeddings = model.encode(texts, show_progress_bar=True)
-
     points = []
     for idx, (chunk, embedding) in enumerate(zip(all_chunks, embeddings)):
         points.append(PointStruct(
