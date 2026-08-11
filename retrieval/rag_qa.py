@@ -16,7 +16,8 @@ from search import search  # aynı klasördeki search.py'den hibrit arama fonksi
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-MODEL_NAME = "gemini-flash-latest"  # her zaman güncel/desteklenen Flash modelini işaret eder
+MODEL_NAME = "gemini-flash-lite-latest" # her zaman güncel/desteklenen Flash modelini işaret eder
+  # her zaman güncel/desteklenen Flash modelini işaret eder
 
 SYSTEM_PROMPT = """Sen TechCorp şirketinin iç bilgi asistanısın. Sana verilen doküman
 parçalarına dayanarak çalışanların sorularını cevaplıyorsun.
